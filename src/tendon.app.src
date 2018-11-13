@@ -1,0 +1,15 @@
+{application, tendon,
+ [{description, "build system"},
+  {vsn, "0.1.0"},
+  {registered, []},
+  {applications,
+   [kernel,
+    stdlib
+   ]},
+  {env,[]},
+  {modules, []},
+
+  {maintainers, []},
+  {licenses, ["public domain"]},
+  {links, []}
+ ]}.
