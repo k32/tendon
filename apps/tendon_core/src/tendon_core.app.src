@@ -1,0 +1,18 @@
+{application, tendon_core,
+ [{description, "An OTP application"},
+  {vsn, "git"},
+  {registered, []},
+  {applications,
+   [kernel,
+    stdlib,
+    lee,
+    bbmustache,
+    hut,
+    task_graph
+   ]},
+  {env,[]},
+  {modules, []},
+
+  {licenses, ["Apache 2.0"]},
+  {links, []}
+ ]}.

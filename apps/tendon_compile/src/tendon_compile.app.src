@@ -1,0 +1,8 @@
+{application, tendon_compile,
+ [{description, "Compiles erlang files to beams"},
+  {vsn, "0.0.1"},
+  {registered, []},
+  {applications, [tendon_core]},
+  {env,[]},
+  {modules, []}
+ ]}.
