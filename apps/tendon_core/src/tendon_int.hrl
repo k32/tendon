@@ -1,7 +1,7 @@
 -ifndef(TENDON_INT_HRL).
 -define(TENDON_INT_HRL, 1).
 
--include("tendon.hrl").
+-include_lib("tendon.hrl").
 
 -ifndef(OLD_TIME_UNITS).
 -define(tg_timeUnit, millisecond).

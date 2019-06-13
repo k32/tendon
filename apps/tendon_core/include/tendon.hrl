@@ -6,16 +6,6 @@
 -include_lib("task_graph/include/task_graph.hrl").
 -include_lib("typerefl/include/types.hrl").
 
-%% Record for structured build flow events
--record(td_event,
-        { timestamp  :: integer()
-        , provider   :: tendon_plugin:provider()
-        , message    :: string()
-        , level      :: tendon_event:level()
-        , data       :: #{atom() => term()}
-        , raw_output :: iolist()
-        }).
-
 -record(td_task,
         { provider   :: module()
         , data       :: term()
@@ -40,5 +30,11 @@
 
 -define(mk_task(Id, Data),
         mk_task(Id, Data, [])).
+
+-define(root_project, root).
+
+-define(proj(Project), project, ?lcl(Project)).
+
+-define(proj, ?proj(?root_project)).
 
 -endif.

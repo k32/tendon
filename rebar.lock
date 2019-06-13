@@ -1,6 +1,24 @@
 {"1.1.0",
-[{<<"map_sets">>,{pkg,<<"map_sets">>,<<"1.1.0">>},1}]}.
+[{<<"bbmustache">>,
+  {git,"https://github.com/k32/bbmustache",
+       {ref,"cb4f03943bd5345199544a60ba5912f3975d187f"}},
+  0},
+ {<<"hut">>,{pkg,<<"hut">>,<<"1.3.0">>},0},
+ {<<"lee">>,
+  {git,"https://github.com/k32/Lee.git",
+       {ref,"8ba5b15d0d4f34b8ff620590a4a49480bfd9b46a"}},
+  0},
+ {<<"map_sets">>,{pkg,<<"map_sets">>,<<"1.1.0">>},1},
+ {<<"task_graph">>,
+  {git,"https://github.com/k32/task_graph.git",
+       {ref,"acb8b98952700b752a647413bf3c14ad96fd1271"}},
+  0},
+ {<<"typerefl">>,
+  {git,"https://github.com/k32/typerefl",
+       {ref,"e380b739654ae83ff41b1e02aec157227ba4a493"}},
+  1}]}.
 [
 {pkg_hash,[
+ {<<"hut">>, <<"71F2F054E657C03F959CF1ACC43F436EA87580696528CA2A55C8AFB1B06C85E7">>},
  {<<"map_sets">>, <<"517897DC5830F26770798B3226FCE515B94A37C31A8E714FBED0934EC4ABC630">>}]}
 ].
