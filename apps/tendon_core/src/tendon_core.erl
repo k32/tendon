@@ -1,6 +1,7 @@
 -module(tendon_core).
 
 -behavior(tendon_plugin).
+-compile({no_auto_import, [halt/1]}).
 
 -include("tendon_int.hrl").
 
@@ -28,7 +29,7 @@
 
 -type app_id() :: atom().
 
--type package_id() :: root | {dep, atom()}.
+-type package_id() :: ?root_project | {dep, atom()}.
 
 -type props(K, V) :: [{K, V}] | #{K => V}.
 
@@ -101,7 +102,7 @@ project_model() ->
            }}
      , plugins =>
          {[value],
-          #{ oneliner => "List of tendon plugins"
+         #{ oneliner => "List of tendon plugins"
            , type => list(tendon_plugin:plugin())
            , default => []
            , file_key => tendon_plugins
@@ -151,28 +152,28 @@ main(Opts) ->
     read_global_config(Opts),
     maybe_show_help_and_exit(),
     start_logging(),
-    read_project_config(root, "."),
+    read_project_config(?root_project, "."),
     case tendon_main(Opts) of
       ok ->
-        erlang:halt(0);
+        halt(0);
       error ->
-        erlang:halt(1)
+        halt(1)
     end
   catch
     exit:{panic, Fmt, Args} ?BIND_STACKTRACE(Stack) ->
-      %% Panic is a semi-expected outcome and it is caused by user
-      %% error:
+      %% Panic is an expected outcome that is caused by the user
+      %% errors:
       ?GET_STACKTRACE(Stack),
       ?log(critical, "Build aborted: " ++ Fmt, Args),
       ?log(debug, "Panic stacktrace: ~p", [Stack]),
-      erlang:halt(1);
+      halt(1);
     EC:Err ?BIND_STACKTRACE(Stack) ->
       ?GET_STACKTRACE(Stack),
       ?log( critical
           , "Uncaught ~p in ~p: ~p~nStacktrace: ~p"
           , [EC, ?MODULE, Err, Stack]
           ),
-      erlang:halt(1)
+      halt(1)
   end.
 
 -spec panic(string(), term()) -> no_return().
@@ -182,6 +183,12 @@ panic(Format, Args) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+
+-spec halt(byte()) -> no_return().
+halt(Code) ->
+  application:stop(tendon),
+  application:stop(kernel),
+  init:stop(Code).
 
 -spec global_config_model() -> lee:module().
 global_config_model() ->
@@ -219,7 +226,7 @@ global_config_model() ->
          }}
    , show_top =>
        {[value, cli_param],
-        #{ oneliner => "Show statistics about task time"
+        #{ oneliner => "Show statistics about execution time of different tasks"
          , type => boolean()
          , default => false
          , cli_operand => "top"
@@ -235,7 +242,7 @@ global_config_model() ->
        {[value, cli_param],
        #{ onliner => "Verbosity of console output"
         , type => tendon_event:level()
-        , default => error
+        , default => notice
         , cli_short => "v"
         , cli_operand => "verbosity"
         }}
@@ -265,11 +272,22 @@ global_config_model() ->
    }.
 
 start_logging() ->
-  application:set_env(hut, level, ?cfg([verbosity])),
+  set_logger_settings(),
   %% TODO
   Handlers = [],
   {ok, _} = tendon_event:start_link([tendon_evt_console | Handlers]),
   ok.
+
+-ifdef(OTP_RELEASE).
+%% OTP21+ Yay, we have `logger':
+set_logger_settings() ->
+  logger:set_primary_config(#{ level => ?cfg([verbosity])
+                             , filter_default => log
+                             }).
+-else.
+set_logger_settings() ->
+    application:set_env(hut, level, ?cfg([verbosity])).
+-endif.
 
 -spec tendon_main([string()]) -> ok | error.
 tendon_main(Opts) ->
@@ -358,8 +376,7 @@ change_config(Transaction) ->
         {error, Err}          -> ok;
         Err                   -> ok
       end,
-      ?log(critical, "Invalid configuration!~n~s", [lee_lib:term_to_string(Err)]),
-      erlang:halt(1)
+      panic("Invalid configuration!~n~s", [lee_lib:term_to_string(Err)])
   end.
 
 -spec maybe_show_help_and_exit() -> ok.
@@ -369,7 +386,7 @@ maybe_show_help_and_exit() ->
       ok;
     _ ->
       io:format("TODO: not implemented"),
-      erlang:halt(0)
+      halt(0)
   end.
 
 -spec patch_project_model(tendon_plugin:plugin(), lee:module()) ->
@@ -390,13 +407,13 @@ patch_project_model(Plugin, Module0) ->
 merged_project_model() ->
   ProjectModels = [patch_project_model(P, P:project_model())
                    || P <- tendon_plugin:plugins()],
-  %% HACK: We know that project namespaces don't collide, hence
-  %% regular map merge is fine:
+  %% We know that project namespaces don't collide, hence regular map
+  %% merge is fine:
   lists:foldl(fun maps:merge/2, #{}, ProjectModels).
 
 -spec ensure_work_dirs() -> ok.
 ensure_work_dirs() ->
-  WorkDir = ?cfg_dir([project, ?lcl([root]), tendon_core, base_dir]),
+  WorkDir = ?cfg_dir([?proj, tendon_core, base_dir]),
   CacheDir = ?cfg_dir([cache_dir]),
   Dirs = [ filename:join(WorkDir, "bin")
          , filename:join(WorkDir, "lib")

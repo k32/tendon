@@ -1,1 +1,62 @@
-#+TITLE: Yet another Erlang build system
+#+TITLE: Tendon
+
+Tendon is a parallel, scalable and (somewhat) rebar3-compatible
+build system.
+
+Planned features include:
+
+ - [X] Parsing rebar.config
+ - [ ] Plugin support
+ - [ ] Build graph visualization
+ - [ ] Build profiling tools
+ - [ ] Erlang compilation
+ - [ ] Git dependencies
+ - [ ] Hex dependencies
+ - [ ] Dialyzer
+ - [ ] Common test
+ - [ ] Eunit
+ - [ ] Relx integration
+ - [ ] Escriptize
+
+* Why reinvent rebar3?
+
+We all love rebar3. It is opiniated, compliant with the OTP design
+principles, declarative, and easy to use. Unfortunately, it has some
+shortcomings that lie deep within its architecture:
+
+ 1. Granularity of the build targets. Minimal build unit in rebar3 is
+    not the beam file or the Erlang application, but
+    "provider". (Providers include compile, get_deps, etc.). This
+    destroys parallelism, e.g. it's impossible to compile one app
+    while another one is being downloaded
+
+ 2. Global mutable state. Rebar3 providers rely on the global state,
+    which further limits parallelism
+
+ 3. Error handling. rebar3 crashes with a BEAM dump on innocuous
+    configuration errors
+
+* Limitations
+
+** Incompatibilities with rebar3
+
+While tendon strives to understand more or less complex =rebar.config=
+files, some things will never work:
+
+ - Plugins. tendon plugin interface is fundamentally different from
+   rebar's
+
+** OTP version support
+
+Tendon targets OTP 21+. There is limited support for OTP 19+, but most
+of advanced log management features are missing, as they depend on
+=logger=.
+
+* Name
+
+Think concrete reinforcement, not biology!
+
+* Attribution
+
+This project contains heavily refactored code originating from rebar
+project, written by its respective authors.

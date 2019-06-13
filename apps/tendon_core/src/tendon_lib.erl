@@ -13,6 +13,8 @@
         , merge_digraphs/1
 
         , metamodel/0
+
+        , locate_app/1
         ]).
 
 -define(recursion_depth, 5).
@@ -20,23 +22,9 @@
 -spec render_template(lee:model(), lee:data(), string() | binary()) ->
                          {ok, string()} | {error, string()}.
 render_template(Model, Data, Template) when is_binary(Template) ->
-  %% DO NOT escape anything
+  %% DO NOT escape anything:
   EscapeFun = fun(A) -> A end,
-  %% Transform comma-separated string to a Lee key and get it from `Data'
-  GetterFun = fun(Str0) ->
-                  case Str0 of
-                    "cfg:" ++ Str ->
-                      case typerefl:from_string(list(), Str) of
-                        {ok, Key} when is_list(Key) ->
-                          {ok, Term} = try_get_cfg(Model, Data, Key),
-                          {ok, lee_lib:term_to_string(Term)};
-                        _ ->
-                          throw("Invalid configuration key: " ++ Str)
-                      end;
-                    _ ->
-                      throw("Unknown template variable scope in template " ++ Str0)
-                  end
-              end,
+  GetterFun = fun(Str) -> getter_fun(Model, Data, Str) end,
   Options = [ {key_type, string}
             , {escape_fun, EscapeFun}
             ],
@@ -72,25 +60,38 @@ render_template(Model, Data, Template) ->
 -spec validate_template( lee:model()
                        , lee:data()
                        , lee:key()
-                       , string()
+                       , lee:mnode()
                        ) -> {[string()], [string()]}.
 validate_template(Model, Data, Key, _) ->
   try lee:get(Model, Data, Key) of
-    Value ->
-      case render_template(Model, Data, Value) of
-        {ok, _} ->
-          {[], []};
-        {error, Str} ->
-          Msg = lee_lib:format( "Key: ~p~n"
-                                "Invalid template: ~p~n"
-                                "Error: ~s~n"
-                              , [Key, Value, Str]
-                              ),
-          {[Msg], []}
-      end
+      Values = [L0|_] when is_list(L0) ->
+        { lists:append([do_validate_template(Model, Data, Key, I)
+                        || I <- Values
+                       ])
+        , []
+        };
+      Value ->
+        {do_validate_template(Model, Data, Key, Value), []}
   catch
     _:_ -> %% Not our problem
       {[], []}
+  end.
+
+-spec do_validate_template( lee:model()
+                          , lee:data()
+                          , lee:key()
+                          , string()
+                          ) -> [string()].
+do_validate_template(Model, Data, Key, Template) ->
+  case render_template(Model, Data, Template) of
+    {ok, _} ->
+      [];
+    {error, Str} ->
+      [lee_lib:format( "Key: ~p~n"
+                       "Invalid template: ~p~n"
+                       "Error: ~s~n"
+                     , [Key, Template, Str]
+                     )]
   end.
 
 metamodel() ->
@@ -148,13 +149,18 @@ try_get_cfg(Model, Data, Key) ->
   catch
     EC:Err ?BIND_STACKTRACE(Stack) ->
       ?GET_STACKTRACE(Stack),
-      ?slog(error, #{ what => "Config read error"
+      ?slog(debug, #{ what => "Config read error"
                     , error_class => EC
                     , stacktrace => Stack
                     , error => Err
                     }),
-      throw(lee_lib:format("Invalid configuration key: ~p", Key))
+      throw(lee_lib:format("Invalid configuration key: ~p", [Key]))
   end.
+
+-spec locate_app(tendon_core:app_id()) -> {ok, file:filename()} | undefined.
+locate_app(App) ->
+  Checkouts = ?cfg_dir([?proj, checkouts_dir]),
+  undefined.
 
 -spec merge_digraphs([tendon_core:digraph()]) ->
                         tendon_core:digraph().
@@ -163,3 +169,16 @@ merge_digraphs(GG) ->
             {Vtx ++ AccVtx, Edg ++ AccEdg}
         end,
   lists:foldl(Fun, {[], []}, GG).
+
+%% @private Look up data to fill in a template variable
+-spec getter_fun(lee:model(), lee:data(), string()) -> term().
+getter_fun(Model, Data, "cfg:" ++ Str) ->
+  case typerefl:from_string(list(), Str) of
+    {ok, Key} when is_list(Key) ->
+      {ok, Term} = try_get_cfg(Model, Data, Key),
+      {ok, lee_lib:term_to_string(Term)};
+    _ ->
+      throw("Invalid configuration key: " ++ Str)
+  end;
+getter_fun(_Model, _Data, Str) ->
+  throw("Unknown template variable scope in template " ++ Str).
