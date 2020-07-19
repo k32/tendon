@@ -1,4 +1,4 @@
--module(tendon_lib_tests).
+-module(anvl_lib_tests).
 
 -include_lib("typerefl/include/types.hrl").
 -include_lib("eunit/include/eunit.hrl").
@@ -48,7 +48,7 @@ render_template_test() ->
   Model = test_model(),
   Data = test_data1(),
   Render = fun(Template) ->
-                 tendon_lib:render_template(Model, Data, Template)
+                 anvl_lib:render_template(Model, Data, Template)
            end,
   %% Valid configuration getter scenarios:
   ?assertMatch({ok, "fooo"}, Render("fooo")),

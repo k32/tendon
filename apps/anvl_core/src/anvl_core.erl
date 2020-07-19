@@ -1,9 +1,9 @@
--module(tendon_core).
+-module(anvl_core).
 
--behavior(tendon_plugin).
+-behavior(anvl_plugin).
 -compile({no_auto_import, [halt/1]}).
 
--include("tendon_int.hrl").
+-include("anvl_int.hrl").
 
 -export([ main/1
         , panic/2
@@ -45,7 +45,7 @@
 -define(base_interface_modules, [ lee_cli
                                 , lee_consult
                                 , lee_os_env
-                                , tendon_lib
+                                , anvl_lib
                                 ]).
 
 -reflect_type([ overrides/0, optional/1, maybe/1, app_id/0
@@ -56,7 +56,7 @@
 %%% Lee models
 %%%===================================================================
 
--define(ns, tendon).
+-define(ns, anvl).
 
 metamodel() ->
   #{ metatype =>
@@ -66,7 +66,7 @@ metamodel() ->
    }.
 
 %%%===================================================================
-%%% tendon_plugin callbacks
+%%% anvl_plugin callbacks
 %%%===================================================================
 
 -spec project_model() -> lee:module().
@@ -102,11 +102,11 @@ project_model() ->
            }}
      , plugins =>
          {[value],
-         #{ oneliner => "List of tendon plugins"
-           , type => list(tendon_plugin:plugin())
+         #{ oneliner => "List of anvl plugins"
+           , type => list(anvl_plugin:plugin())
            , default => []
-           , file_key => tendon_plugins
-           , doc_remark => "Tendon plugins are incompatible with the rebar3 providers"
+           , file_key => anvl_plugins
+           , doc_remark => "Anvl plugins are incompatible with the rebar3 providers"
            }}
      , overrides =>
          {[value],
@@ -146,29 +146,27 @@ providers() ->
 main(Opts) ->
   try
     InterfaceModules = ?base_interface_modules ++
-      tendon_plugin:plugins(),
+      anvl_plugin:plugins(),
     application:set_env(lee, interface_modules, InterfaceModules),
-    application:ensure_all_started(tendon_core),
+    application:ensure_all_started(anvl_core),
     read_global_config(Opts),
     maybe_show_help_and_exit(),
     start_logging(),
     read_project_config(?root_project, "."),
-    case tendon_main(Opts) of
+    case anvl_main(Opts) of
       ok ->
         halt(0);
       error ->
         halt(1)
     end
   catch
-    exit:{panic, Fmt, Args} ?BIND_STACKTRACE(Stack) ->
+    exit:{panic, Fmt, Args}:Stack ->
       %% Panic is an expected outcome that is caused by the user
       %% errors:
-      ?GET_STACKTRACE(Stack),
       ?log(critical, "Build aborted: " ++ Fmt, Args),
       ?log(debug, "Panic stacktrace: ~p", [Stack]),
       halt(1);
-    EC:Err ?BIND_STACKTRACE(Stack) ->
-      ?GET_STACKTRACE(Stack),
+    EC:Err:Stack ->
       ?log( critical
           , "Uncaught ~p in ~p: ~p~nStacktrace: ~p"
           , [EC, ?MODULE, Err, Stack]
@@ -186,7 +184,7 @@ panic(Format, Args) ->
 
 -spec halt(byte()) -> no_return().
 halt(Code) ->
-  application:stop(tendon),
+  application:stop(anvl),
   application:stop(kernel),
   init:stop(Code).
 
@@ -196,8 +194,8 @@ global_config_model() ->
        {[value, mustache, os_env],
         #{ oneliner => "Directory where global caches are located"
          , type => string()
-         , default => filename:basedir(user_cache, "tendon")
-         , os_env => "TENDON_CACHE_DIR"
+         , default => filename:basedir(user_cache, "anvl")
+         , os_env => "ANVL_CACHE_DIR"
          , doc_remark => "Default value is platform-dependent."
          }}
    , parallel_tasks =>
@@ -241,7 +239,7 @@ global_config_model() ->
    , verbosity =>
        {[value, cli_param],
        #{ onliner => "Verbosity of console output"
-        , type => tendon_event:level()
+        , type => anvl_event:level()
         , default => notice
         , cli_short => "v"
         , cli_operand => "verbosity"
@@ -275,7 +273,7 @@ start_logging() ->
   set_logger_settings(),
   %% TODO
   Handlers = [],
-  {ok, _} = tendon_event:start_link([tendon_evt_console | Handlers]),
+  {ok, _} = anvl_event:start_link([anvl_evt_console | Handlers]),
   ok.
 
 -ifdef(OTP_RELEASE).
@@ -289,11 +287,11 @@ set_logger_settings() ->
     application:set_env(hut, level, ?cfg([verbosity])).
 -endif.
 
--spec tendon_main([string()]) -> ok | error.
-tendon_main(Opts) ->
+-spec anvl_main([string()]) -> ok | error.
+anvl_main(Opts) ->
   ?log(debug, "Configuration dump: ~p", [lee_server:dump()]),
-  Seeds = [tendon_plugin:seed(P) || P <- tendon_plugin:plugins()],
-  Seed = tendon_lib:merge_digraphs(Seeds),
+  Seeds = [anvl_plugin:seed(P) || P <- anvl_plugin:plugins()],
+  Seed = anvl_lib:merge_digraphs(Seeds),
   ?log(debug, "Seed: ~p", [Seed]),
   ensure_work_dirs(),
   Resources = case ?cfg([parallel_tasks]) of
@@ -303,10 +301,10 @@ tendon_main(Opts) ->
   TGOpts = #{ keep_going     => ?cfg([keep_going])
             , disable_guards => ?cfg([always_make])
             , resources      => Resources
-            , event_manager  => tendon_event
+            , event_manager  => anvl_event
             },
   ?log(debug, "task_graph options: ~p", [TGOpts]),
-  case task_graph:run_graph(tendon_graph, TGOpts, Seed) of
+  case task_graph:run_graph(anvl_graph, TGOpts, Seed) of
     {ok, Result} ->
       ?log(notice, "Build succeeded.", []),
       ok;
@@ -344,7 +342,7 @@ read_project_config(Package, ProjectDir) ->
           end,
         {Empty, Cfg0} = lists:foldl( MaybeReadCfgFile
                                    , {true, []}
-                                   , ["rebar.config", "tendon.config"]
+                                   , ["rebar.config", "anvl.config"]
                                    ),
         %% TODO: This is hacky!!!! lee_consult should be smarter
         Cfg = lists:map( fun({set, [project, ?children | RestKey], Val}) ->
@@ -352,7 +350,7 @@ read_project_config(Package, ProjectDir) ->
                          end
                        , Cfg0
                        ),
-        Empty andalso throw(ProjectDir ++ " is not a valid tendon project directory"),
+        Empty andalso throw(ProjectDir ++ " is not a valid anvl project directory"),
         {ok, Cfg}
     end,
   change_config(Transaction).
@@ -389,7 +387,7 @@ maybe_show_help_and_exit() ->
       halt(0)
   end.
 
--spec patch_project_model(tendon_plugin:plugin(), lee:module()) ->
+-spec patch_project_model(anvl_plugin:plugin(), lee:module()) ->
                              lee:module().
 patch_project_model(Plugin, Module0) ->
   Module1 =
@@ -406,17 +404,17 @@ patch_project_model(Plugin, Module0) ->
 -spec merged_project_model() -> lee:module().
 merged_project_model() ->
   ProjectModels = [patch_project_model(P, P:project_model())
-                   || P <- tendon_plugin:plugins()],
+                   || P <- anvl_plugin:plugins()],
   %% We know that project namespaces don't collide, hence regular map
   %% merge is fine:
   lists:foldl(fun maps:merge/2, #{}, ProjectModels).
 
 -spec ensure_work_dirs() -> ok.
 ensure_work_dirs() ->
-  WorkDir = ?cfg_dir([?proj, tendon_core, base_dir]),
+  WorkDir = ?cfg_dir([?proj, anvl_core, base_dir]),
   CacheDir = ?cfg_dir([cache_dir]),
   Dirs = [ filename:join(WorkDir, "bin")
          , filename:join(WorkDir, "lib")
          ],
-  lists:foreach(fun tendon_lib:ensure_dir/1, Dirs),
+  lists:foreach(fun anvl_lib:ensure_dir/1, Dirs),
   ok.

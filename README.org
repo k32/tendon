@@ -1,6 +1,6 @@
-#+TITLE: Tendon
+#+TITLE: ANVL
 
-Tendon is a parallel, scalable and (somewhat) rebar3-compatible
+Anvl is a parallel, scalable and (somewhat) rebar3-compatible
 build system.
 
 Planned features include:
@@ -40,21 +40,15 @@ shortcomings that lie deep within its architecture:
 
 ** Incompatibilities with rebar3
 
-While tendon strives to understand more or less complex =rebar.config=
+While anvl strives to understand more or less complex =rebar.config=
 files, some things will never work:
 
- - Plugins. tendon plugin interface is fundamentally different from
+ - Plugins. anvl plugin interface is fundamentally different from
    rebar's
 
 ** OTP version support
 
-Tendon targets OTP 21+. There is limited support for OTP 19+, but most
-of advanced log management features are missing, as they depend on
-=logger=.
-
-* Name
-
-Think concrete reinforcement, not biology!
+Anvl only works with OTP 21+.
 
 * Attribution
 

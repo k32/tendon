@@ -1,4 +1,4 @@
-{application, tendon_core,
+{application, anvl_core,
  [{description, "An OTP application"},
   {vsn, "git"},
   {registered, []},

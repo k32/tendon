@@ -1,6 +1,6 @@
--module(tendon_plugin).
+-module(anvl_plugin).
 
--include("tendon.hrl").
+-include("anvl.hrl").
 
 -export([ builtin_plugins/0
         , providers/1
@@ -14,7 +14,7 @@
 
 -type provider() :: module().
 
--type plugin() :: tendon_core:app_id().
+-type plugin() :: anvl_core:app_id().
 
 -reflect_type([plugin/0, provider/0]).
 
@@ -37,16 +37,16 @@
 
 -spec builtin_plugins() -> [plugin()].
 builtin_plugins() ->
-  [tendon_core, tendon_compile].
+  [anvl_core, anvl_compile].
 
 -spec providers(plugin()) -> [provider()].
 providers(Plugin) ->
   Plugin:providers().
 
--spec seed(plugin()) -> tendon_core:digraph().
+-spec seed(plugin()) -> anvl_core:digraph().
 seed(Plugin) ->
   Seeds = [P:seed() || P <- providers(Plugin)],
-  tendon_lib:merge_digraphs(Seeds).
+  anvl_lib:merge_digraphs(Seeds).
 
 %% @doc List available plugins
 -spec plugins() -> [plugin()].

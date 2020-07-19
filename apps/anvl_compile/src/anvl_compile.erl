@@ -1,8 +1,8 @@
--module(tendon_compile).
+-module(anvl_compile).
 
--include_lib("tendon_core/include/tendon.hrl").
+-include_lib("anvl_core/include/anvl.hrl").
 
--behavior(tendon_plugin).
+-behavior(anvl_plugin).
 
 -export([model/0, project_model/0, providers/0]).
 
@@ -16,7 +16,7 @@ model() ->
           #{ apps =>
                {[value, cli_positional],
                 #{ oneliner => "List of apps that should be compiled"
-                 , type     => list(tendon_core:app_id())
+                 , type     => list(anvl_core:app_id())
                  , cli_arg_position => rest
                  }}
            }}

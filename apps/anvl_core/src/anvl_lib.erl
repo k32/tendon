@@ -1,6 +1,6 @@
--module(tendon_lib).
+-module(anvl_lib).
 
--include("tendon_int.hrl").
+-include("anvl_int.hrl").
 
 -export([ render_template/3
         , render_template/1
@@ -147,8 +147,7 @@ try_get_cfg(Model, Data, Key) ->
   try lee_model:get(MKey, Model) of
       _ -> {ok, lee:get(Model, Data, Key)}
   catch
-    EC:Err ?BIND_STACKTRACE(Stack) ->
-      ?GET_STACKTRACE(Stack),
+    EC:Err:Stack ->
       ?slog(debug, #{ what => "Config read error"
                     , error_class => EC
                     , stacktrace => Stack
@@ -157,13 +156,13 @@ try_get_cfg(Model, Data, Key) ->
       throw(lee_lib:format("Invalid configuration key: ~p", [Key]))
   end.
 
--spec locate_app(tendon_core:app_id()) -> {ok, file:filename()} | undefined.
+-spec locate_app(anvl_core:app_id()) -> {ok, file:filename()} | undefined.
 locate_app(App) ->
   Checkouts = ?cfg_dir([?proj, checkouts_dir]),
   undefined.
 
--spec merge_digraphs([tendon_core:digraph()]) ->
-                        tendon_core:digraph().
+-spec merge_digraphs([anvl_core:digraph()]) ->
+                        anvl_core:digraph().
 merge_digraphs(GG) ->
   Fun = fun({Vtx, Edg}, {AccVtx, AccEdg}) ->
             {Vtx ++ AccVtx, Edg ++ AccEdg}
